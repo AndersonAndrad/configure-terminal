@@ -39,7 +39,14 @@ cat <<EOF > ~/.husky/commit-msg
 npx --no -- commitlint --edit "\$1" --config ~/.config/commitlint/commitlint.config.js
 EOF
 
+echo "📎 Adding pre-commit hook..."
+cat <<EOF > ~/.husky/pre-commit
+#!/bin/sh
+exit 0
+EOF
+
 chmod +x ~/.husky/commit-msg
+chmod +x ~/.husky/pre-commit
 
 echo "🧬 Setting Git global init template (optional)..."
 git config --global init.templateDir ~/.husky
