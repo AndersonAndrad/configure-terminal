@@ -1,68 +1,25 @@
 #!/bin/bash
-
 set -e
 
-echo "📦 Ensuring NVM is installed..."
-export NVM_DIR="$HOME/.nvm"
-if [ ! -s "$NVM_DIR/nvm.sh" ]; then
-  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+echo "🐟 Installing Fish shell..."
+
+# Install Fish via Homebrew (macOS)
+if ! command -v fish >/dev/null 2>&1; then
+  echo "📦 Installing Fish via Homebrew..."
+  brew install fish
+else
+  echo "✅ Fish is already installed."
 fi
-source "$NVM_DIR/nvm.sh"
 
-echo "📦 Installing Node.js LTS..."
-nvm install --lts
-nvm use --lts
+# Ensure ~/.config/fish exists
+mkdir -p ~/.config/fish
 
-echo "📦 Installing global npm packages..."
-npm install -g husky @commitlint/cli @commitlint/config-conventional commitizen cz-conventional-changelog
+# Add 'commit' alias for Fish (example)
+grep -qxF 'alias commit="npx cz"' ~/.config/fish/config.fish || \
+  echo 'alias commit="npx cz"' >> ~/.config/fish/config.fish
 
-echo "🛠️ Configuring Commitizen..."
-echo '{ "path": "cz-conventional-changelog" }' > ~/.czrc
+# Optionally add exec fish to zsh startup so new terminals start in Fish
+grep -qxF 'exec fish' ~/.zshrc || echo 'exec fish' >> ~/.zshrc
 
-echo "🧩 Creating Commitlint configuration..."
-mkdir -p ~/.config/commitlint
-cat <<EOF > ~/.config/commitlint/commitlint.config.js
-module.exports = {
-  extends: ["@commitlint/config-conventional"],
-  rules: {
-    "type-enum": [
-      2,
-      "always",
-      ["feat", "fix", "docs", "style", "refactor", "test", "chore", "perf", "build", "ci", "revert"]
-    ],
-    "header-max-length": [2, "always", 150]
-  }
-};
-EOF
-
-echo "🔧 Setting up Husky global hooks..."
-mkdir -p ~/.husky
-git config --global core.hooksPath ~/.husky
-
-echo "📎 Adding commit-msg hook..."
-cat <<EOF > ~/.husky/commit-msg
-#!/bin/sh
-npx --no -- commitlint --edit "\$1" --config ~/.config/commitlint/commitlint.config.js
-EOF
-
-chmod +x ~/.husky/commit-msg
-
-echo "🧬 Setting Git global init template (optional)..."
-git config --global init.templateDir ~/.husky
-
-echo "🐟 Configuring Fish shell..."
-
-# Define temporary alias for current session (only applies if inside fish shell)
-echo 'alias commit "npx cz"' | fish
-
-# Append persistent alias to config.fish
-echo 'alias commit="npx cz"' >> ~/.config/fish/config.fish
-
-# Define as a function and save it
-fish -c 'function commit; npx cz \$argv; end; funcsave commit'
-
-# Use Fish 3.0+ --save method to define and persist alias
-fish -c 'alias --save commit="npx cz"'
-
-
-echo "✅ Done. Restart your terminal or run: source ~/.config/fish/functions/commit.fish"
+echo "✅ Fish shell installed and configured!"
+echo "📌 Restart your terminal to start using Fish by default."
