@@ -11,15 +11,25 @@ else
   echo "✅ Fish is already installed."
 fi
 
-# Ensure ~/.config/fish exists
+# Ensure config folder exists
 mkdir -p ~/.config/fish
 
-# Add 'commit' alias for Fish (example)
-grep -qxF 'alias commit="npx cz"' ~/.config/fish/config.fish || \
-  echo 'alias commit="npx cz"' >> ~/.config/fish/config.fish
+# Universal commit alias for Yarn/NPM
+FISH_CONFIG=~/.config/fish/config.fish
+NODE_BIN=$(which node)
+COMMIT_BIN=$(which commitizen)
 
-# Optionally add exec fish to zsh startup so new terminals start in Fish
+# Add or update alias
+if grep -q "alias commit=" "$FISH_CONFIG"; then
+  sed -i '' "s|alias commit=.*|alias commit=\"$NODE_BIN $COMMIT_BIN\"|" "$FISH_CONFIG"
+else
+  echo "alias commit=\"$NODE_BIN $COMMIT_BIN\"" >> "$FISH_CONFIG"
+fi
+
+# Reload fish config
+fish -c "source $FISH_CONFIG"
+
+# Optionally add exec fish to zsh startup
 grep -qxF 'exec fish' ~/.zshrc || echo 'exec fish' >> ~/.zshrc
 
-echo "✅ Fish shell installed and configured!"
-echo "📌 Restart your terminal to start using Fish by default."
+echo "✅ Fish shell configured. Use 'commit' to run Commitizen globally."

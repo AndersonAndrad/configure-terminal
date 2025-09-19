@@ -1,19 +1,34 @@
 #!/bin/bash
-
-# Ensure Node & npm are available (via nvm)
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-
-# Exit on any error
 set -e
 
+# -------------------------------
+# NVM + Node.js Setup
+# -------------------------------
+echo "📦 Ensuring NVM is installed..."
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] || curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+source "$NVM_DIR/nvm.sh"
+
+echo "📦 Installing Node.js LTS..."
+nvm install --lts
+nvm use --lts
+
+# -------------------------------
+# Global npm packages
+# -------------------------------
 echo "📦 Installing global npm packages..."
 npm install -g husky @commitlint/cli @commitlint/config-conventional commitizen cz-conventional-changelog
 
-echo "🛠️ Configuring commitizen..."
+# -------------------------------
+# Commitizen Setup
+# -------------------------------
+echo "🛠️ Configuring Commitizen..."
 echo '{ "path": "cz-conventional-changelog" }' > ~/.czrc
 
-echo "🧩 Creating commitlint configuration..."
+# -------------------------------
+# Commitlint Setup
+# -------------------------------
+echo "🧩 Creating Commitlint configuration..."
 mkdir -p ~/.config/commitlint
 cat <<EOF > ~/.config/commitlint/commitlint.config.js
 module.exports = {
@@ -29,40 +44,31 @@ module.exports = {
 };
 EOF
 
+# -------------------------------
+# Husky Global Hooks
+# -------------------------------
 echo "🔧 Setting up Husky global hooks..."
 mkdir -p ~/.husky
 git config --global core.hooksPath ~/.husky
 
 echo "📎 Adding commit-msg hook..."
-cat <<EOF > ~/.husky/commit-msg
+cat <<'EOF' > ~/.husky/commit-msg
 #!/bin/sh
-npx --no -- commitlint --edit "\$1" --config ~/.config/commitlint/commitlint.config.js
-EOF
+# Ensure Node and commitlint are resolved globally
+NODE_BIN=$(which node)
+COMMITLINT_BIN=$(which commitlint)
 
-echo "📎 Adding pre-commit hook..."
-cat <<EOF > ~/.husky/pre-commit
-#!/bin/sh
-exit 0
+# fallback if not found
+[ -z "$COMMITLINT_BIN" ] && COMMITLINT_BIN="npx --no -- commitlint"
+
+MSG_FILE="${1:-.git/COMMIT_EDITMSG}"
+
+$NODE_BIN $COMMITLINT_BIN --edit "$MSG_FILE" --config ~/.config/commitlint/commitlint.config.js
 EOF
 
 chmod +x ~/.husky/commit-msg
-chmod +x ~/.husky/pre-commit
 
 echo "🧬 Setting Git global init template (optional)..."
 git config --global init.templateDir ~/.husky
 
-echo "🚀 Adding 'commit' alias to Fish shell..."
-FISH_CONFIG=~/.config/fish/config.fish
-COMMIT_BIN="$(npm bin -g)/commitizen"
-
-# Add or update the alias
-if grep -q "alias commit=" "$FISH_CONFIG"; then
-  sed -i '' "s|alias commit=.*|alias commit=\"$COMMIT_BIN\"|" "$FISH_CONFIG"
-else
-  echo "alias commit=\"$COMMIT_BIN\"" >> "$FISH_CONFIG"
-fi
-
-# Reload fish config
-fish -c "source $FISH_CONFIG"
-
-echo "✅ Setup complete! Use 'commit' to start conventional commits."
+echo "✅ Husky and Commitlint configured globally."
